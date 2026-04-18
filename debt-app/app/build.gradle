@@ -19,9 +19,6 @@ android {
             minifyEnabled false
             signingConfig signingConfigs.debug
         }
-        debug {
-            applicationIdSuffix ""
-        }
     }
 
     compileOptions {
@@ -31,5 +28,4 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
 }
