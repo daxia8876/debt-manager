@@ -978,11 +978,17 @@ function addRecord(type, amount, direction, reason) {
 
 // ========== EXPORT/IMPORT ==========
 function exportData() {
-  const blob = new Blob([JSON.stringify({ debts, changeRecords, historySnapshots }, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url;
-  a.download = `债务数据_${new Date().toISOString().slice(0,10)}.json`;
-  a.click(); URL.revokeObjectURL(url);
+  const content = JSON.stringify({ debts, changeRecords, historySnapshots }, null, 2);
+  const filename = `债务数据_${new Date().toISOString().slice(0,10)}.json`;
+  if (window.AndroidBridge) {
+    window.AndroidBridge.saveFile(content, filename);
+  } else {
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
 }
 function importData(e) {
   const file = e.target.files[0]; if (!file) return;
