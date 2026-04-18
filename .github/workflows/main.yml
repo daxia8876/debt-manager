@@ -20,7 +20,7 @@ jobs:
 
       - name: Build APK
         run: |
-          cd debt-manager-android/debt-app
+          cd debt-app
           chmod +x gradlew
           curl -L "https://github.com/gradle/gradle/raw/v8.4.0/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
           ./gradlew assembleRelease --no-daemon
@@ -28,4 +28,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: 债务管家-APK
-          path: debt-manager-android/debt-app/app/build/outputs/apk/**/*.apk
+          path: debt-app/app/build/outputs/apk/**/*.apk
