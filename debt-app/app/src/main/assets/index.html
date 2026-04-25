@@ -34,7 +34,7 @@
     .main-wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
 
     /* STATS */
-    .stats-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 2px 8px var(--shadow); }
+    .stats-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 2px 8px var(--shadow); }
     .stat-cell { background: var(--card-bg); padding: 14px 10px; text-align: center; }
     .stat-label { font-size: 0.68rem; color: var(--ink-light); letter-spacing: 0.04em; font-weight: 500; margin-bottom: 5px; }
     .stat-value { font-family: var(--mono); font-size: 1rem; font-weight: 700; }
@@ -205,6 +205,7 @@
     <div class="stat-cell"><div class="stat-label">剩余本金</div><div class="stat-value sv-red" id="s_principal">¥0</div></div>
     <div class="stat-cell"><div class="stat-label">剩余利息</div><div class="stat-value sv-gold" id="s_interest">¥0</div></div>
     <div class="stat-cell"><div class="stat-label">本月应还</div><div class="stat-value sv-gold" id="s_monthly">¥0</div></div>
+    <div class="stat-cell"><div class="stat-label">累计已付利息</div><div class="stat-value sv-gold" id="s_paid_interest">¥0</div></div>
     <div class="stat-cell"><div class="stat-label">已结清</div><div class="stat-value sv-green" id="s_settled">0笔</div></div>
   </div>
 
@@ -509,25 +510,31 @@ function getDebtDetail(d) {
 }
 
 function getStats() {
-  let totalDebt = 0, remP = 0, remI = 0, monthly = 0, settled = 0;
+  let totalDebt = 0, remP = 0, remI = 0, monthly = 0, settled = 0, paidInterest = 0;
   debts.forEach(d => {
     const s = isSettled(d);
-    if (s) { settled++; return; }
+    if (s) { settled++; }
     const det = getDebtDetail(d);
-    remP += det.remPrincipal;
-    remI += det.remInterest;
-    totalDebt += det.remPrincipal + det.remInterest;
+    if (!s) {
+      remP += det.remPrincipal;
+      remI += det.remInterest;
+      totalDebt += det.remPrincipal + det.remInterest;
+    }
+    // 累计已付利息（所有债务，含已结清）
+    paidInterest += det.paidInterest;
     // 本月应还
-    if (d.type === 'monthly') {
-      const { monthly: M } = calcMonthlyInstallment(d);
-      monthly += M;
-    } else if (d.type === 'daily') {
-      const avgP = (d.principal || 0) / (d.periods || 1);
-      const dr = (d.rate || 0) / 100 / 365;
-      monthly += avgP + (d.balance || 0) * dr * 30;
+    if (!s) {
+      if (d.type === 'monthly') {
+        const { monthly: M } = calcMonthlyInstallment(d);
+        monthly += M;
+      } else if (d.type === 'daily') {
+        const avgP = (d.principal || 0) / (d.periods || 1);
+        const dr = (d.rate || 0) / 100 / 365;
+        monthly += avgP + (d.balance || 0) * dr * 30;
+      }
     }
   });
-  return { totalDebt, remP, remI, monthly, settled };
+  return { totalDebt, remP, remI, monthly, settled, paidInterest };
 }
 
 // ===== SNAPSHOT =====
@@ -1041,7 +1048,8 @@ function renderDebtCard(d, idx, settled) {
       </div>
       <div class="dc-amounts">
         <div class="dc-total${settled?' st-amt':''}">${fmtS(remTotal)}</div>
-        <div class="dc-breakdown">本金 ${fmtS(det.remPrincipal)} · 息 ${fmtS(det.remInterest)}</div>
+        <div class="dc-breakdown">本金 ${fmtS(det.remPrincipal)} · 剩余息 ${fmtS(det.remInterest)}</div>
+        <div class="dc-breakdown" style="color:var(--gold)">已付利息 ${fmt(det.paidInterest)}</div>
       </div>
     </div>
     <div class="prog-wrap">
@@ -1158,6 +1166,7 @@ function renderAll() {
   document.getElementById('s_principal').textContent=fmtS(stats.remP);
   document.getElementById('s_interest').textContent=fmtS(stats.remI);
   document.getElementById('s_monthly').textContent=fmtS(stats.monthly);
+  document.getElementById('s_paid_interest').textContent=fmtS(stats.paidInterest);
   document.getElementById('s_settled').textContent=stats.settled+'笔';
   document.getElementById('settledCount').textContent=`(${settledCnt})`;
 
